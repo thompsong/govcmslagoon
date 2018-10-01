@@ -10,6 +10,8 @@ RUN drush dl -y registry_rebuild \
   && drush dl -y --destination=sites/all/modules/contrib \
   memcache \
   memory_profiler \
+  module_missing_message_fixer \
+  utf8mb4_convert \
   && fix-permissions /home/.drush \
   && find /app/sites/all/modules/acsf -name "*.info" -print0 | xargs -0 sed -i -e "/dependencies/d" \
   && /app/sanitize.sh \
