@@ -1,4 +1,4 @@
-FROM govcmsdev/govcms7
+FROM govcms/govcms7
 
 COPY .docker/sanitize.sh /app/sanitize.sh
 

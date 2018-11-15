@@ -1,7 +1,7 @@
 ARG CLI_IMAGE
 FROM ${CLI_IMAGE} as cli
 
-FROM govcmsdev/php
+FROM govcms/php
 
 RUN apk add --update clamav clamav-libunrar \
     && freshclam
