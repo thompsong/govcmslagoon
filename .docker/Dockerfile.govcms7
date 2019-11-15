@@ -1,6 +1,6 @@
-ARG LAGOON_IMAGE_VERSION_PHP
+ARG LAGOON_IMAGE_VERSION
 ARG PHP_IMAGE_VERSION
-FROM amazeeio/php:${PHP_IMAGE_VERSION}-cli-drupal${LAGOON_IMAGE_VERSION_PHP} as builder
+FROM amazeeio/php:${PHP_IMAGE_VERSION}-cli-drupal-${LAGOON_IMAGE_VERSION} as builder
 
 ARG GOVCMS_PROJECT_VERSION
 
@@ -8,20 +8,20 @@ RUN rm -rf /app \
     && mkdir /src \
     && cd /src \
     && echo "memory_limit=-1" >> /usr/local/etc/php/conf.d/memory.ini \
-    && wget https://raw.githubusercontent.com/sonnykt/govCMS/$GOVCMS_PROJECT_VERSION/drupal-org-core.make -O /src/drupal-org-core.make \
+    && wget https://raw.githubusercontent.com/govcms/govCMS/$GOVCMS_PROJECT_VERSION/drupal-org-core.make -O /src/drupal-org-core.make \
     && { \
         echo "core = 7.x"; \
         echo "api = 2"; \
         echo "includes[] = drupal-org-core.make"; \
         echo "projects[govcms][type] = profile"; \
         echo "projects[govcms][download][type] = git"; \
-        echo "projects[govcms][download][url] = https://github.com/sonnykt/govCMS.git"; \
+        echo "projects[govcms][download][url] = https://github.com/govcms/govCMS.git"; \
         echo "projects[govcms][download][branch] = $GOVCMS_PROJECT_VERSION"; \
     } | tee -a "/src/build-govcms.make" \
     && drush make /src/build-govcms.make /app --contrib-destination \
     && echo "version = \"$GOVCMS_PROJECT_VERSION\"" >> /app/profiles/govcms/govcms.info
 
-FROM amazeeio/php:${PHP_IMAGE_VERSION}-cli-drupal${LAGOON_IMAGE_VERSION_PHP}
+FROM amazeeio/php:${PHP_IMAGE_VERSION}-cli-drupal-${LAGOON_IMAGE_VERSION}
 
 COPY --from=builder /app /app
 COPY .docker/sanitize.sh /app/sanitize.sh
@@ -29,15 +29,14 @@ COPY .docker/sanitize.sh /app/sanitize.sh
 COPY .docker/images/govcms7/scripts /usr/bin/
 COPY .docker/images/govcms7/aliases.drushrc.php /home/.drush/site-aliases/
 
-RUN apk add python \
-    && apk del mysql-client \
-    && apk add --no-cache "mariadb-client=10.2.22-r0" --repository http://dl-cdn.alpinelinux.org/alpine/v3.8/main/ \
+# findutils can be removed after amazeeio/lagoon PR1077
+RUN apk add --no-cache python findutils \
     && drush @none dl registry_rebuild-7.x \
     && drush dl --destination=sites/all/modules/contrib -y \
-    fast_404 \
-    lagoon_logs \
-    redis \
-    stage_file_proxy \
+    fast_404-7.x-1.5 \
+    lagoon_logs-7.x-1.0 \
+    redis-7.x-3.17 \
+    stage_file_proxy-7.x-1.9 \
     && wget https://www.drupal.org/files/issues/drupal-500_exception_on_exception-12221055-6.patch \
     && patch -p1 < drupal-500_exception_on_exception-12221055-6.patch \
     && rm drupal-500_exception_on_exception-12221055-6.patch \
@@ -52,3 +51,4 @@ RUN mkdir -p /app/sites/default/files/private/tmp/
 COPY modules/ /app/sites/all/modules/
 
 COPY .docker/images/govcms7/settings/ /app/sites/default/
+RUN chmod 444 /app/sites/default/settings.php
